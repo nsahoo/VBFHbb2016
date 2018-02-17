@@ -107,8 +107,7 @@ def RooDraw(opts,can,C,S,x,rh,model,qPDF,zPDF,tPDF,archive,chi2_val,n_param,titl
 # part 1
 	rh.plotOn(frametop)
 	model.plotOn(frametop,RooFit.LineWidth(2))
-
-
+	
 #	rhres = frametop.residHist()
 	rhres = frametop.pullHist()
 	p1 = RooArgSet(qPDF)
@@ -117,6 +116,18 @@ def RooDraw(opts,can,C,S,x,rh,model,qPDF,zPDF,tPDF,archive,chi2_val,n_param,titl
 	model.plotOn(frametop,RooFit.Components(p1),RooFit.LineWidth(2),RooFit.LineColor(kBlack),RooFit.LineStyle(kDashed))
 #	model.plotOn(frametop,RooFit.Components(p2),RooFit.LineWidth(2),RooFit.LineColor(kBlue))
 #	model.plotOn(frametop,RooFit.Components(p3),RooFit.LineWidth(2),RooFit.LineColor(kGreen+1))
+#	h_func_new =model.createHistogram('h_model_new',x,Binning(opts.X[0],opts.X[1],NBINS[0]))
+#	h_data_new =rh.createHistogram('h_data_new',x,Binning(opts.X[0],opts.X[1],NBINS[0]))
+#	h_func_new.SetLineWidth(3)
+#	h_func_new.SetLineColor(2)
+#	h_func_new.Draw()
+#	print 'num bins ',h_func_new.GetNbinsX(), '  ',rh.GetNBinsX()
+#	hfunc = RooDataHist("tmp","tmp",RooArgList(x),h_func_new)
+#	hfunc.plotOn(frametop,RooFit.LineColor(kRed),RooFit.LineWidth(2),RooFit.LineStyle(kDashed))
+
+#	h_func_new.Draw("same")
+#	ks_new = h_func_new.KolmogorovTest(h_data_new,'NN')
+#	print 'ks = ', ks_new
 	frametop.GetXaxis().SetTitleSize(0)
 	frametop.GetXaxis().SetLabelSize(0)
 	frametop.GetYaxis().SetLabelSize(0.035)
@@ -132,8 +143,8 @@ def RooDraw(opts,can,C,S,x,rh,model,qPDF,zPDF,tPDF,archive,chi2_val,n_param,titl
 	print ndf
 	print chi2_val
 	print prob
-		
-	
+
+
 # part 2
 	pad = TPad("pad","pad",0.,0.,1.,1.)
 	pad.SetTopMargin(0.7)
@@ -258,10 +269,11 @@ def main():
 		can = TCanvas("canD_sel%s"%S.tag,"%s"%opts.function,600,600)
 #		can.Divide(2,2)
 ## Category loop
-		for C in range(S.ncat):
-#		if (1>0):
-#			C=0
+#		for C in range(S.ncat):
+		if (1>0):
+			C=0
 			Cp = C + sum([x for x in SC.ncats[0:iS]])
+			print C,Cp
 ####################################################################################################
 #### Start of RooFit part 
 
@@ -320,7 +332,6 @@ def main():
 	  ### Histograms
 			rh[N]  = RooDataHist("data_hist_CAT%d"%Cp,"data_hist_CAT%d"%Cp,RooArgList(x),h[N])
 			rhb[N] = RooDataHist("data_hist_blind_CAT%d"%Cp,"data_hist_blind_CAT%d"%Cp,RooArgList(x),hb[N])
-
   ### Model
 			print Cp
 			if Cp==0 or Cp==4:
@@ -369,6 +380,7 @@ def main():
 	  		model[N] = RooAddPdf("bkg_model_%s_CAT%d"%(opts.TF[iS],Cp),"bkg_model_%s_CAT%d"%(opts.TF[iS],Cp),RooArgList(zPDF[N],tPDF[N],qcd_pdf[N]),RooArgList(yZ[N],yT[N],yQ[N]))
 			
   ### Fit
+			print 'Inregral = ',Y[N].getVal()	
 	  		res   = model[N].fitTo(rh[N],RooFit.Save(),RooFit.Warnings(ROOT.kTRUE))
 			for gc in gcs_aux :
 				gc.Print()
@@ -377,7 +389,13 @@ def main():
 
 			chi2 = RooChi2Var("chi2", "chi2", model[N], rh[N])
 			chi2_val = chi2.getVal()
-
+			print 'Yields Z,Top,QCD: ', yZ[N].getVal(),yT[N].getVal(),yQ[N].getVal()
+			total_fitted_yield = yZ[N].getVal()+yT[N].getVal()+yQ[N].getVal()
+			h_data = rh[N].createHistogram('h_data',x)
+			h_func =model[N].createHistogram('h_model',x)
+			h_func.Scale(total_fitted_yield/h_func.Integral())
+			ks = h_func.KolmogorovTest(h_data,'NN')
+			print 'KS = ',ks
   ### Draw
   			RooDraw(opts,can,C,S,x,rh[N],model[N],qcd_pdf[N],zPDF[N],tPDF[N],archive,chi2_val,n_param,opts.function)
 		#	can.cd(C+1)
@@ -400,6 +418,7 @@ def main():
 			for o in [rh[N],rhb[N],model[N],Y[N]]:
 				getattr(w,'import')(o,RooFit.RenameConflictNodes("(1)"))
 				if opts.verbosity>0 and not opts.quiet: o.Print()
+		
 ###
 ###--- end of CAT loop
 ###
@@ -408,10 +427,10 @@ def main():
 #		makeDirs("%s/plot/biasFunctionsCATS/"%opts.workdir)
 #		can.SaveAs("%s/plot/biasFunctionsCATS/%s_%s.pdf"%(opts.workdir,can.GetName(),opts.function))
 #		can.SaveAs("%s/plot/biasFunctionsCATS/%s_%s.png"%(opts.workdir,can.GetName(),opts.function))
-
 		makeDirs("%s/plot/biasFunctions/"%opts.workdir)
 		can.SaveAs("%s/plot/biasFunctions/%s_%s.pdf"%(opts.workdir,can.GetName(),opts.function))
 		can.SaveAs("%s/plot/biasFunctions/%s_%s.png"%(opts.workdir,can.GetName(),opts.function))
+
 	
 #
 #--- end of SEL loop
