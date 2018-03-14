@@ -37,11 +37,20 @@ void ptBestFit(float BIN_SIZE=5.0,bool BLIND=false,TString MASS="125",TString NA
 //  TFile *f3 = TFile::Open("new/root/sig_shapes_workspace.root");
 //  TFile *f4 = TFile::Open("new/root/data_shapes_workspace.root");
 
-
+/*
   TFile *f1 = TFile::Open("combination/datacards/datacard_vbfHbb_2016_m125.root");
   TFile *f2 = TFile::Open("combination/combine_2016_results/mlfitdataShapes3.root");
  TFile *f3 = TFile::Open("combination/root//sig_shapes_workspace_2016.root");
   TFile *f4 = TFile::Open("combination/root/data_shapes_workspace_2016.root");
+*/
+
+  TFile *f1 = TFile::Open("nolimit/datacards/datacard_vbfHbb_names_m125_"+saveNAME+".root");
+//  TFile *f2 = TFile::Open("nolimit/run_from/mlfitfitToData.root");
+ TFile *f3 = TFile::Open("nolimit/root//sig_shapes_workspace.root");
+  TFile *f4 = TFile::Open("nolimit/root/data_shapes_workspace.root");
+
+  TFile *f2 = TFile::Open("nolimit/run_from/mlfit"+NAME+"only.root");
+
 
 
   RooWorkspace *w = (RooWorkspace*)f1->Get("w");
@@ -69,7 +78,7 @@ void ptBestFit(float BIN_SIZE=5.0,bool BLIND=false,TString MASS="125",TString NA
   
   w->allVars().assignValueOnly(res_s->floatParsFinal());
 //  w->Print();
-//  w->allVars()->Print();
+///  w->allVars().Print();
 
   RooWorkspace *wSig = (RooWorkspace*)f3->Get("w"); 
   RooWorkspace *wDat = (RooWorkspace*)f4->Get("w"); 
@@ -78,6 +87,7 @@ void ptBestFit(float BIN_SIZE=5.0,bool BLIND=false,TString MASS="125",TString NA
   const RooAbsCategoryLValue &cat = (RooAbsCategoryLValue &) sim->indexCat();
   TList *datasets = data->split(cat,true);
 	cout<<	datasets->GetSize()<<endl;
+
   TIter next(datasets);
   //int count = 0; 
   for(RooAbsData *ds = (RooAbsData*)next();ds != 0; ds = (RooAbsData*)next()) {
@@ -91,11 +101,11 @@ void ptBestFit(float BIN_SIZE=5.0,bool BLIND=false,TString MASS="125",TString NA
     RooRealVar *yield_gf  = (RooRealVar*)wSig->var("yield_signalGF_mass"+MASS+"_"+TString(ds->GetName()));
     TString ds_name(ds->GetName());
     RooRealVar *yield_zjets  = (RooRealVar*)wDat->var("yield_ZJets_"+ds_name);
-    RooRealVar *zjets_norm_final = dynamic_cast<RooRealVar *>(res_s->floatParsFinal()).find("CMS_vbfbb_zjets_norm_"+ds_name+"_13TeV_2016");
+    RooRealVar *zjets_norm_final = dynamic_cast<RooRealVar *>(res_s->floatParsFinal()).find("CMS_vbfbb_zjets_norm_"+ds_name+"_13TeV"); /////_13TeV_2016
     RooRealVar *yield_top  = (RooRealVar*)wDat->var("yield_Top_"+ds_name);
-    RooRealVar *top_norm_final = dynamic_cast<RooRealVar *>(res_s->floatParsFinal()).find("CMS_vbfbb_top_norm_"+ds_name+"_13TeV_2016");
+    RooRealVar *top_norm_final = dynamic_cast<RooRealVar *>(res_s->floatParsFinal()).find("CMS_vbfbb_top_norm_"+ds_name+"_13TeV");
     //----- get the QCD normalization -----------
-    RooRealVar *qcd_norm_final = dynamic_cast<RooRealVar *>((res_s->floatParsFinal()).find("CMS_vbfbb_qcd_norm_"+ds_name+"_13TeV_2016"));
+    RooRealVar *qcd_norm_final = dynamic_cast<RooRealVar *>((res_s->floatParsFinal()).find("CMS_vbfbb_qcd_norm_"+ds_name+"_13TeV"));
     RooRealVar *qcd_yield      = (RooRealVar*)wDat->var("yield_data_"+ds_name);
 
     float Nqcd  = exp(log(1.5)*qcd_norm_final->getVal())*qcd_yield->getVal();
@@ -172,19 +182,23 @@ void ptBestFit(float BIN_SIZE=5.0,bool BLIND=false,TString MASS="125",TString NA
       RooAbsPdf *signal_pdf = (RooAbsPdf*)w->pdf("shapeSig_qqH_hbb_"+ds_name);
       signal_pdf->plotOn(frame2,LineWidth(2),LineColor(kRed),Normalization(yield_sig,RooAbsReal::NumEvent),MoveToBack());
     }
-	TH1F *hdataFit_total = (TH1F*)f2->Get("shapes_fit_s/"+ds_name+"/total");
-	for (int i=0;i<hdataFit_total->GetNbinsX();i++){
-		hdataFit_total->SetBinContent(i+1,hdataFit_total->GetBinContent(i+1)*hdataFit_total->GetBinWidth(i+1));
-	}
-	int rebin2 = BIN_SIZE/hdataFit_total->GetBinWidth(1);
-	hdataFit_total->Rebin(rebin2);
-	cout<<rebin2<<endl;
-	hdataFit_total->SetLineColor(kMagenta);
-   RooDataHist dataFit_h("dataFit_h"+ds_name,"dataFit_h"+ds_name,*x,hdataFit_total);
-//	frame1->addPlotable(dataFit_h)
-	dataFit_h.plotOn(frame1,LineWidth(2),LineColor(2),MarkerColor(2),MarkerStyle(1));
-//	 hresid0->Print();
-//	 hresid->Print();
+
+//////////////////////////////////////////////shapes_fit_s///////////////////////////////////////////////////
+//	TH1F *hdataFit_total = (TH1F*)f2->Get("shapes_fit_s/"+ds_name+"/total");
+//	for (int i=0;i<hdataFit_total->GetNbinsX();i++){
+//		hdataFit_total->SetBinContent(i+1,hdataFit_total->GetBinContent(i+1)*hdataFit_total->GetBinWidth(i+1));
+//	}
+//	int rebin2 = BIN_SIZE/hdataFit_total->GetBinWidth(1);
+//	hdataFit_total->Rebin(rebin2);
+//	cout<<rebin2<<endl;
+//	hdataFit_total->SetLineColor(kMagenta);
+//   RooDataHist dataFit_h("dataFit_h"+ds_name,"dataFit_h"+ds_name,*x,hdataFit_total);
+/////////	frame1->addPlotable(dataFit_h)
+//	dataFit_h.plotOn(frame1,LineWidth(2),LineColor(2),MarkerColor(2),MarkerStyle(1));
+//////////////////////////////////////////////////
+//
+////	 hresid0->Print();
+////	 hresid->Print();
 //	 double x2,y2;
 //	 for (int i=0; i<3; ++i) {
 //		 hresid0->GetPoint(i,x2,y2);

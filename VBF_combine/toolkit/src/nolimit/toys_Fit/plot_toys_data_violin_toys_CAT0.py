@@ -11,8 +11,11 @@ gStyle.SetPadLeftMargin(0.15)
 
 
 ####### from 0,300 BRN
-fdata_fit = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitfitToDataCAT0.root")
-fAsimov = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitfitToDataCAT0Asimov.root")
+#fdata_fit = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitfitToDataCAT0.root")
+#fAsimov = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitfitToDataCAT0Asimov.root")
+###check of CAT0###
+fdata_fit = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitCAT0_fit_to_data.root")
+fAsimov = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitCAT0_fit_to_data_Asimov.root")
 #############freeze QCD###################
 #fdata_fit = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitall_data_noQCD_freeze.root")
 #fAsimov = ROOT.TFile.Open("/afs/cern.ch/work/n/nchernya/VBFHbb_2016/VBF_combine/toolkit/src/nolimit/run_from/mlfitall_Asimov_noQCD_freeze.root")
@@ -76,10 +79,12 @@ for cat in range(0,1):
 	all_hists[0].GetXaxis().SetTitle("M_{bb} in CAT%d (GeV)"%cat)
 	all_hists[0].Rebin(50)
 	all_hists[0].SetLineColor(ROOT.kGreen+2)
+#	all_hists[0].Scale(1./all_hists[0].Integral())
 	all_hists[0].Draw("H")	
 	for num in range(1,len):
 		all_hists[num].Rebin(50)
 		all_hists[num].SetLineColor(ROOT.kGreen+2)
+#		all_hists[num].Scale(1./all_hists[num].Integral())
 		all_hists[num].Draw("Hsame")
 	for num in range(0,len):
 		all_toys_data[num].Rebin(50)
@@ -87,6 +92,7 @@ for cat in range(0,1):
 		all_toys_data[num].SetMarkerColor(ROOT.kCyan+1)
 		all_toys_data[num].SetMarkerStyle(26)
 		all_toys_data[num].SetLineStyle(2)
+#		all_toys_data[num].Scale(all_toys_data[num].Integral())
 		all_toys_data[num].Draw("PEsame")
 
 
@@ -105,6 +111,7 @@ for cat in range(0,1):
 	Asimov_hist.Rebin(50)
 	Asimov_hist.SetMarkerColor(1)
 	Asimov_hist.SetMarkerStyle(20)
+#	Asimov_hist.Scale(1./Asimov_hist.Integral())
 	Asimov_hist.Draw("Psame")
 
 
@@ -119,6 +126,7 @@ for cat in range(0,1):
 		data_fit.SetBinContent(i+1,data_fit.GetBinContent(i+1)*data_fit.GetBinWidth(i+1))
 		data_fit.SetBinError(i+1,data_fit.GetBinError(i+1)*data_fit.GetBinWidth(i+1))
 	data_fit.Rebin(50)
+#	data_fit.Scale(1./data_fit.Integral())
 	data_fit.Draw("HISTsame")
 
 	leg = ROOT.TLegend(0.7,0.7,0.9,0.9)
@@ -132,4 +140,4 @@ for cat in range(0,1):
 	leg.SetTextFont(42)
 	leg.SetTextSize(0.03)
 	leg.Draw()
-	c.SaveAs("plot/toys_fit_nolimit_noopt_bg_CAT0_accum_cat%d.png"%cat)
+	c.SaveAs("plot/toys_fit_nolimit_noopt_bg_CAT0_check_accum_cat%d.png"%cat)

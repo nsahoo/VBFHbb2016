@@ -278,7 +278,7 @@ def generate_pdf(x=ROOT.RooRealVar(), pdf_name="expPow",x_name='mbbReg_CAT0', se
 			coeff.add(brn[nb])
 			gcs.append(brn[nb])
 	#	name = "qcd_model_"+pdf_name+"_CAT0"
-		name = "qcd_model_POL1POL1_CAT%d"%cat_num
+		name = "qcd_model_POL2POL2_CAT%d"%cat_num
 		pdf = ROOT.RooBernstein(name,"",x,coeff )
 
 
