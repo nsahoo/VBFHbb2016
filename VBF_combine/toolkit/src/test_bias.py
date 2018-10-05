@@ -7,7 +7,7 @@ from optparse import OptionParser,OptionGroup
 import warnings
 
 from  pdf_param_cfi import *
-from generatePdf import *
+from generatePdf_cat import *
 from generateFormula import *
 
 warnings.filterwarnings( action='ignore', category=RuntimeWarning, message='.*class stack<RooAbsArg\*,deque<RooAbsArg\*> >' )
@@ -46,7 +46,7 @@ def parser(mp=None):
 #	mp.add_option('-q','--quiet',help=colours[5]+'Quiet.'+colours[0],default=False,action='store_false')
 #
 	mg1 = OptionGroup(mp,'Selection setup')
-	mg1.add_option('--SELCATs',help=colours[5]+'Selection/Category setup.'+colours[0],default='double;DoubleB;0.0875#0.5775#0.7875#1.,single;SingleB;0.0775#0.5775#0.7775#0.8775#1.',type='str',action='callback',callback=SELsetup,dest='SC')# final
+	mg1.add_option('--SELCATs',help=colours[5]+'Selection/Category setup.'+colours[0],default='double;DoubleB;-1#0.0875#0.5775#0.7875#1.,single;SingleB;-1#0.0775#0.5775#0.7775#0.8775#1.',type='str',action='callback',callback=SELsetup,dest='SC')# final
 	mp.add_option_group(mg1)
 #
 	mg2 = OptionGroup(mp,'Data template setup')
@@ -79,13 +79,13 @@ def style():
 
 def hStyle(h,i,sumw2=True):
 	if sumw2: h.Sumw2()
-	h.SetMarkerStyle([20,20,23,21][i])
+	h.SetMarkerStyle([20,20,23,21,22,24][i])
 	h.SetMarkerSize(1.2)
-	h.SetMarkerColor([kBlack,kBlue,kRed,kGreen+2][i])
-	h.SetLineColor([kBlack,kBlue,kRed,kGreen+2][i])
+	h.SetMarkerColor([kBlack,kBlue,kRed,kGreen+2,kOrange][i])
+	h.SetLineColor([kBlack,kBlue,kRed,kGreen+2,kOrange][i])
 
 def gpStyle(g,i):
-	g.SetFillColor([kBlack,kBlue,kRed,kGreen+2][i])
+	g.SetFillColor([kBlack,kBlue,kRed,kGreen+2,kOrange][i])
 	g.SetFillStyle(3004)
 
 def gaStyle(g,i):
@@ -241,11 +241,6 @@ def main():
 
 # Selection loop
 	for iS,S in enumerate(SC.selections):
-                print "SC_selections"
-           	print SC.selections 
-                print S
-                print iS
-                print "end_SC_selections"
 ## Load tree
 		fin = TFile.Open("/afs/cern.ch/work/l/lata/VBF_Analysis/CMSSW_7_4_7/src/VBFHbb2016/VBF_combine/VBFHbb2016/inputs/FitVBF_BTagCSV_analysis_%s_trignone_v25_VBF_newReg.root"%(str.lower(S.tag)),"read")
 		T = fin.Get("VBF/events")
@@ -263,9 +258,9 @@ def main():
 		can = TCanvas("canD_sel%s"%S.tag,"%s"%opts.function,600,600)
 #		can.Divide(2,2)
 ## Category loop
-		for C in range(S.ncat):
-#		if (1>0):
-#			C=0
+#		for C in range(S.ncat):
+		if (1>0):
+			C=0
 			Cp = C + sum([x for x in SC.ncats[0:iS]])
 ####################################################################################################
 #### Start of RooFit part 
@@ -322,16 +317,14 @@ def main():
 			#	print i
 	  ### Yields
 			Y[N]   = RooRealVar("yield_data_CAT%d"%Cp,"yield_data_CAT%d"%Cp,h[N].Integral())
-			print "Yield:"
-			print h[N].Integral()
 	  ### Histograms
 			rh[N]  = RooDataHist("data_hist_CAT%d"%Cp,"data_hist_CAT%d"%Cp,RooArgList(x),h[N])
 			rhb[N] = RooDataHist("data_hist_blind_CAT%d"%Cp,"data_hist_blind_CAT%d"%Cp,RooArgList(x),hb[N])
 
   ### Model
 			print Cp
-			if Cp==0 or Cp==3:
-				if Cp==3 :  gcs_aux[:]=[]
+			if Cp==0 or Cp==4:
+				if Cp==4 :  gcs_aux[:]=[]
 				[qcd_pdf[N],params[N]] = generate_pdf(x, pdf_name=opts.function,x_name=x_name,selection=S.tag,gcs=gcs_aux) 
 				if qcd_pdf[N] == None : return -1
 			else:
@@ -384,6 +377,17 @@ def main():
 
 			chi2 = RooChi2Var("chi2", "chi2", model[N], rh[N])
 			chi2_val = chi2.getVal()
+			
+			print 'Yields Z,Top,QCD: ', yZ[N].getVal(),yT[N].getVal(),yQ[N].getVal()
+			total_fitted_yield = yZ[N].getVal()+yT[N].getVal()+yQ[N].getVal()
+			h_data = rh[N].createHistogram('h_data',x)
+			print 'h_data Integral',h_data.Integral()
+			h_func =model[N].createHistogram('h_model',x)
+			h_func.Scale(total_fitted_yield/h_func.Integral())
+			print 'h_func Integral',h_func.Integral()
+			ks = h_func.KolmogorovTest(h_data,'NN')
+			print 'KS probability = ',ks
+
 
   ### Draw
   			RooDraw(opts,can,C,S,x,rh[N],model[N],qcd_pdf[N],zPDF[N],tPDF[N],archive,chi2_val,n_param,opts.function)
@@ -407,10 +411,9 @@ def main():
 			for o in [rh[N],rhb[N],model[N],Y[N]]:
 				getattr(w,'import')(o,RooFit.RenameConflictNodes("(1)"))
 				if opts.verbosity>0 and not opts.quiet: o.Print()
- 			makeDirs("%s/plot/biasFunctionsCATS/"%opts.workdir)
-                        can.SaveAs("%s/plot/biasFunctionsCATS/%s_%s_%s.pdf"%(opts.workdir,can.GetName(),opts.function,N))
-                        can.SaveAs("%s/plot/biasFunctionsCATS/%s_%s_%s.png"%(opts.workdir,can.GetName(),opts.function,N))
-
+			"""h_func.SetLineColor(kRed)
+			h_data.Draw()
+			h_func.Draw("same")"""
 ###
 ###--- end of CAT loop
 ###
@@ -419,6 +422,10 @@ def main():
 #		makeDirs("%s/plot/biasFunctionsCATS/"%opts.workdir)
 #		can.SaveAs("%s/plot/biasFunctionsCATS/%s_%s.pdf"%(opts.workdir,can.GetName(),opts.function))
 #		can.SaveAs("%s/plot/biasFunctionsCATS/%s_%s.png"%(opts.workdir,can.GetName(),opts.function))
+
+		makeDirs("%s/plot/biasFunctions/"%opts.workdir)
+		can.SaveAs("%s/plot/biasFunctions/%s_%s.pdf"%(opts.workdir,can.GetName(),opts.function))
+		can.SaveAs("%s/plot/biasFunctions/%s_%s.png"%(opts.workdir,can.GetName(),opts.function))
 	
 #
 #--- end of SEL loop
